@@ -32,23 +32,23 @@ module.exports = `
                     style="background-color:#ffffff; padding:40px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); font-family:Arial, sans-serif;">
                     <tr>
                         <td align="center" style="padding-bottom:20px;">
-                            <h1 style="margin:0; color:#333333;">DashDah</h1>
-                            <p style="color:#777777; font-size:16px;">Email Verification Code</p>
+                            <h1 style="margin:0; color:#5C5C5C;">DashDah</h1>
+                            <p style="color:#B87E8E; font-size:16px;">Email Verification Code</p>
                         </td>
                     </tr>
                     <tr>
                         <td>
-                            <p style="font-size:16px; color:#333333;">Hello <strong>{{name}}</strong>,</p>
-                            <p style="font-size:16px; color:#333333;">Thank you for registering. Please use the OTP
+                            <p style="font-size:16px; color:#5C5C5C;">Hello <strong>{{name}}</strong>,</p>
+                            <p style="font-size:16px; color:#5C5C5C;">Thank you for registering. Please use the OTP
                                 below to verify your email:</p>
                             <p class="otp-code"
-                                style="font-size:32px; color:#007bff; text-align:center; font-weight:bold; letter-spacing:4px; margin:20px 0;">
+                                style="font-size:32px; color:#B87E8E; text-align:center; font-weight:bold; letter-spacing:4px; margin:20px 0;">
                                 {{otp}}</p>
                             <p style="font-size:14px; color:#999999; text-align:center;">This code is valid for 10
                                 minutes.</p>
-                            <p style="font-size:16px; color:#333333;">If you didn’t request this, please ignore this
+                            <p style="font-size:16px; color:#5C5C5C;">If you didn’t request this, please ignore this
                                 email.</p>
-                            <p style="font-size:16px; color:#333333;">Best regards,<br />The DashDah Team</p>
+                            <p style="font-size:16px; color:#5C5C5C;">Best regards,<br />The DashDah Team</p>
                         </td>
                     </tr>
                     <tr>

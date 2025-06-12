@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const { sendOTPVerificationEmail } = require('../utils')
+const { createTokenUser, cookiesToResponse, sendOTPVerificationEmail } = require('../utils')
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require('bcryptjs');
 const CustomError = require("../errors");
@@ -8,7 +8,14 @@ const CustomError = require("../errors");
 
 // user register controller 
 const register = async (req, res) => {
-    const { email, fullName, username, password, confirmPassword } = req.body
+    let { email, fullName, username, password, confirmPassword } = req.body;
+
+    // removing any spaces before or after from user inputs
+    email = email?.trim();
+    fullName = fullName?.trim();
+    username = username?.replace(/\s+/g, ''); // removing any spaces overall in username field
+    password = password?.trim();
+    confirmPassword = confirmPassword?.trim();
 
     // checking if all the values are provided
     if (!email || !fullName || !username || !password || !confirmPassword) {
@@ -88,9 +95,9 @@ const verfiyEmail = async (req, res) => {
     // verifying the user
     user.isVerified = true,
         user.verified = Date.now()
-    // setting the verificationtoken value to empty
+    // setting the verificationOTP and verificationOTPExpires value to null
     user.verificationOTP = ""
-
+    user.verificationOTPExpires = ""
     // saving the user
     await user.save()
 
@@ -100,8 +107,36 @@ const verfiyEmail = async (req, res) => {
 
 // user login controller 
 const login = async (req, res) => {
+    const { email, password } = req.body
 
-    res.status(StatusCodes.OK).json("login controller")
+    // checking if user provided all values
+    if (!email || !password) {
+        throw new CustomError.BadRequestError("please provide email and password!")
+    }
+
+    // cheking if the user exists
+    const user = await User.findOne({ email })
+    if (!user) {
+        throw new CustomError.UnauthenticatedError("invalid email or password!")
+    }
+
+    //checking if the password is correct 
+    const isPasswordCorrect = await user.comparePassword(password)
+    if (!isPasswordCorrect) {
+        throw new CustomError.UnauthenticatedError('Invaild Email or Password!')
+    }
+
+    // checking if the user is verified
+    if (!user.isVerified) {
+        throw new CustomError.UnauthenticatedError('please verifiy your email!')
+    }
+
+    // attaching token cookie and signing the user in
+    const tokenUser = createTokenUser(user);
+    cookiesToResponse({ res, user: tokenUser })
+
+    res.status(StatusCodes.OK).json({ user: tokenUser })
+
 }
 
 // user logout controller

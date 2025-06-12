@@ -1,4 +1,5 @@
 const { createJWT, isTokenValid, cookiesToResponse } = require('./jwt')
+const sendOTPVerificationEmail = require('./sendOTPVerificationEmail')
 const createTokenUser = require('./createTokenUser')
 
 
@@ -7,4 +8,5 @@ module.exports = {
     isTokenValid,
     cookiesToResponse,
     createTokenUser,
+    sendOTPVerificationEmail
 }

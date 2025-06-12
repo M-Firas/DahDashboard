@@ -1,27 +1,29 @@
 require('dotenv').config();
 
-//express config
+// express config
 const express = require('express')
 const app = express();
 
-//packages
+// packages
 const morgan = require('morgan')
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const rateLimiter = require('express-rate-limit');
 const helmet = require('helmet')
-const mongoSanitize = require('express-mongo-sanitize')
+const { xss } = require('express-xss-sanitizer');
 
-//database connnection
+// database connnection
 const connectDB = require('./db/connect')
 
-//routers
+// routers
+const authRouter = require('./routes/authRoutes');
 
-
-//not-found middleware 
+// not-found middleware 
 const notFoundMiddleware = require('./middleware/not-found')
-//error handler middleware 
+// error handler middleware 
 const errorHandlerMiddleware = require('./middleware/error-handler')
+// mongoDB sanitizer middleware
+const sanitizeMiddleware = require('./middleware/mongosanitize');
 
 
 //packages use
@@ -31,8 +33,7 @@ app.use(rateLimiter({
     max: 60,
 }))
 app.use(helmet())
-app.use(mongoSanitize())
-
+app.use(xss());
 app.use(morgan('tiny'));
 app.use(express.json());
 app.use(cookieParser(process.env.JWT_SECRET));
@@ -51,11 +52,12 @@ app.get('/api/v1', (req, res) => {
 })
 
 //routes use
-
+app.use('/api/v1/auth', authRouter);
 
 //middlewares use
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
+app.use(sanitizeMiddleware)
 
 
 //assigning a port

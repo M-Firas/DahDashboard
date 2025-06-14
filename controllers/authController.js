@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const { createTokenUser, cookiesToResponse, sendOTPVerificationEmail } = require('../utils')
+const { createTokenUser, cookiesToResponse, sendVerificationEmailOTP, sendResetPasswordOTP } = require('../utils')
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require('bcryptjs');
 const CustomError = require("../errors");
@@ -58,7 +58,7 @@ const register = async (req, res) => {
     newUser.confirmPassword = confirmPassword;
 
     // sending the OTP to user email
-    await sendOTPVerificationEmail({ name: newUser.fullName, email, otp })
+    await sendVerificationEmailOTP({ name: newUser.fullName, email, otp })
 
     // saving the user
     await newUser.save();
@@ -78,7 +78,7 @@ const verfiyEmail = async (req, res) => {
     // checking if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-        throw new CustomError.UnauthenticatedError('user does not exist!')
+        throw new CustomError.NotFoundError("no user found with the provided email!")
     }
 
     // checking if the OTP is still valid
@@ -123,7 +123,7 @@ const login = async (req, res) => {
     //checking if the password is correct 
     const isPasswordCorrect = await user.comparePassword(password)
     if (!isPasswordCorrect) {
-        throw new CustomError.UnauthenticatedError('Invaild Email or Password!')
+        throw new CustomError.UnauthenticatedError("invalid email or password!")
     }
 
     // checking if the user is verified
@@ -138,6 +138,111 @@ const login = async (req, res) => {
     res.status(StatusCodes.OK).json({ user: tokenUser })
 
 }
+
+// forget password OTP controller 
+const forgetPasswordOTP = async (req, res) => {
+    const { email } = req.body;
+
+    // checking if the user provided email value
+    if (!email) {
+        throw new CustomError.BadRequestError("please provide email!")
+    }
+
+    // checking if a user with the provided email exists
+    const user = await User.findOne({ email })
+    if (!user) {
+        throw new CustomError.NotFoundError("no user found with the provided email!")
+    }
+
+    // creating and hashing OTP
+    const otp = `${Math.floor(1000 + Math.random() * 9000)}`
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // saving the hashed otp to the database and defining the expairy date
+    user.forgetPasswordOTP = hashedOtp
+    user.forgetPasswordOTPExpires = Date.now() + 10 * 60 * 1000
+
+    // saving the new fields to user
+    await user.save();
+
+    // sending the OTP to user email
+    await sendResetPasswordOTP({ name: user.fullName, email, otp })
+
+    res.status(StatusCodes.OK).json({ msg: "please check your email to reset your password" });
+
+}
+
+// verify reset password OTP 
+const verifyResetPasswordOTP = async (req, res) => {
+    const { email, otp } = req.body;
+
+    // checking if user provided all values
+    if (!email || !otp) {
+        throw new CustomError.BadRequestError("Please provide email and OTP!");
+    }
+
+    // cheking if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new CustomError.NotFoundError("no user found with the provided email!");
+    }
+
+    // Checking if OTP is expired
+    if (Date.now() > user.forgetPasswordOTPExpires) {
+        throw new CustomError.BadRequestError("OTP has expired");
+    }
+
+    // checking if OTP is correct
+    const isMatch = await bcrypt.compare(otp, user.forgetPasswordOTP);
+    if (!isMatch) {
+        throw new CustomError.BadRequestError("Invalid OTP");
+    }
+
+    // Setting isOTPVerified to true and clearing OTP values
+    user.isOtpVerified = true;
+    user.forgetPasswordOTP = "";
+    user.forgetPasswordOTPExpires = '';
+    await user.save();
+
+    res.status(StatusCodes.OK).json({ msg: "OTP verified successfully" });
+};
+
+// reset password controller 
+const resetPassword = async (req, res) => {
+    const { email, newPassword, confirmPassword } = req.body;
+
+    // checking if user provided all values
+    if (!email || !newPassword || !confirmPassword) {
+        throw new CustomError.BadRequestError("All fields are required");
+    }
+
+    // cheking if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new CustomError.NotFoundError("User not found");
+    }
+
+    // checking if the reset password OTP is verified
+    if (!user.isOtpVerified) {
+        throw new CustomError.UnauthenticatedError("OTP not verified");
+    }
+
+    // Validating password strength 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,})/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new CustomError.BadRequestError(
+            "Password must be at least 8 characters long, include uppercase, lowercase, and a special character."
+        );
+    }
+
+    // Updating password and reset the OTP flag
+    user.password = newPassword;
+    user.confirmPassword = confirmPassword;
+    user.isOtpVerified = false;
+    await user.save();
+
+    res.status(StatusCodes.OK).json({ msg: "Password reset successfully" });
+};
 
 // user logout controller
 const logout = async (req, res) => {
@@ -157,5 +262,8 @@ module.exports = {
     register,
     verfiyEmail,
     login,
-    logout
+    logout,
+    forgetPasswordOTP,
+    resetPassword,
+    verifyResetPasswordOTP
 }

@@ -41,6 +41,16 @@ const UserSchema = new mongoose.Schema({
     verificationOTPExpires: {
         type: Date,
     },
+    forgetPasswordOTP: {
+        type: String,
+    },
+    forgetPasswordOTPExpires: {
+        type: Date,
+    },
+    isOtpVerified: {
+        type: Boolean,
+        default: false
+    }
 });
 
 // Virtual field for confirmPassword

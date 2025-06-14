@@ -33,14 +33,14 @@ module.exports = `
                     <tr>
                         <td align="center" style="padding-bottom:20px;">
                             <h1 style="margin:0; color:#5C5C5C;">DashDah</h1>
-                            <p style="color:#B87E8E; font-size:16px;">Email Verification Code</p>
+                            <p style="color:#B87E8E; font-size:16px;">{{title}}</p>
                         </td>
                     </tr>
                     <tr>
                         <td>
                             <p style="font-size:16px; color:#5C5C5C;">Hello <strong>{{name}}</strong>,</p>
-                            <p style="font-size:16px; color:#5C5C5C;">Thank you for registering. Please use the OTP
-                                below to verify your email:</p>
+                            <p style="font-size:16px; color:#5C5C5C;">{{welcoming}}. Please use the OTP
+                                below to {{purpose}}:</p>
                             <p class="otp-code"
                                 style="font-size:32px; color:#B87E8E; text-align:center; font-weight:bold; letter-spacing:4px; margin:20px 0;">
                                 {{otp}}</p>

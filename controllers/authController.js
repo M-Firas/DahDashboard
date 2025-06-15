@@ -52,6 +52,7 @@ const register = async (req, res) => {
         fullName,
         email,
         password,
+        avatar: profileImage ? `/uploads/${profileImage.filename}` : undefined,
         verificationOTP: hashedOtp,
         verificationOTPExpires: Date.now() + 10 * 60 * 1000
     });

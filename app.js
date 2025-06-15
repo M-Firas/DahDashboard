@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express')
 const app = express();
 
+
 // packages
 const morgan = require('morgan')
 const cookieParser = require('cookie-parser');
@@ -11,6 +12,7 @@ const cors = require('cors');
 const rateLimiter = require('express-rate-limit');
 const helmet = require('helmet')
 const { xss } = require('express-xss-sanitizer');
+
 
 // database connnection
 const connectDB = require('./db/connect')
@@ -41,6 +43,11 @@ app.use(cors({
     origin: ['http://localhost:5173'],
     credentials: true
 }));
+
+app.use('/uploads', express.static('uploads'));
+// Using express.json and urlencoded for non-file requests
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     res.send('dashboard api')

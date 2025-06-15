@@ -67,10 +67,10 @@ const register = async (req, res) => {
 
 // verfiy email controller
 const verfiyEmail = async (req, res) => {
-    const { email, verificationOTP } = req.body
+    const { email, otp } = req.body
 
     // checking if the user has provided email
-    if (!email || !verificationOTP) {
+    if (!email || !otp) {
         throw new CustomError.BadRequestError("please enter all the fields!")
     }
 
@@ -87,7 +87,7 @@ const verfiyEmail = async (req, res) => {
     }
 
     // checking if the OTP is Correct
-    const isMatch = await bcrypt.compare(verificationOTP, user.verificationOTP);
+    const isMatch = await bcrypt.compare(otp, user.verificationOTP);
     if (!isMatch) {
         throw new CustomError.UnauthenticatedError('OTP is incorrect!');
     }
@@ -128,7 +128,16 @@ const login = async (req, res) => {
 
     // checking if the user is verified
     if (!user.isVerified) {
-        throw new CustomError.UnauthenticatedError('please verifiy your email!')
+        // creating and hashing OTP
+        const otp = `${Math.floor(1000 + Math.random() * 9000)}`
+        const hashedOtp = await bcrypt.hash(otp, 10);
+
+        user.verificationOTP = hashedOtp
+        user.verificationOTPExpires = Date.now() + 10 * 60 * 1000
+        user.save()
+
+        await sendVerificationEmailOTP({ name: user.fullName, email, otp })
+        throw new CustomError.UnauthenticatedError('your account is not verified yet, a verification code has been sent to your email')
     }
 
     // attaching token cookie and signing the user in

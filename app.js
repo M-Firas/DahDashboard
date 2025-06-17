@@ -3,6 +3,8 @@ require('dotenv').config();
 // express config
 const express = require('express')
 const app = express();
+const fs = require('fs');
+const path = require('path');
 
 
 // packages
@@ -48,6 +50,14 @@ app.use('/uploads', express.static('uploads'));
 // Using express.json and urlencoded for non-file requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+
 
 app.get('/', (req, res) => {
     res.send('dashboard api')

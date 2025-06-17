@@ -10,31 +10,26 @@ const CustomError = require("../errors");
 const register = async (req, res) => {
     let { email, fullName, username, password, confirmPassword } = req.body;
 
-    // removing any spaces before or after from user inputs
     email = email?.trim();
     fullName = fullName?.trim();
-    username = username?.replace(/\s+/g, ''); // removing any spaces overall in username field
+    username = username?.replace(/\s+/g, '');
     password = password?.trim();
     confirmPassword = confirmPassword?.trim();
 
-    // checking if all the values are provided
     if (!email || !fullName || !username || !password || !confirmPassword) {
         throw new CustomError.BadRequestError("please provide all values!");
     }
 
-    // checking if a user with the provided email exists
-    const emailExists = await User.findOne({ email })
+    const emailExists = await User.findOne({ email });
     if (emailExists) {
         throw new CustomError.BadRequestError("email is taken!");
     }
 
-    // checking if a user with the provided username exists
-    const usernameExists = await User.findOne({ username })
+    const usernameExists = await User.findOne({ username });
     if (usernameExists) {
-        throw new CustomError.BadRequestError("username is taken!")
+        throw new CustomError.BadRequestError("username is taken!");
     }
 
-    // Validating password strength
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,})/;
     if (!passwordRegex.test(password)) {
         throw new CustomError.BadRequestError(
@@ -42,29 +37,35 @@ const register = async (req, res) => {
         );
     }
 
-    // creating and hashing OTP
-    const otp = `${Math.floor(1000 + Math.random() * 9000)}`
+    const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-
+    // Constructing the new user
     const newUser = new User({
         username,
         fullName,
         email,
         password,
-        avatar: profileImage ? `/uploads/${profileImage.filename}` : undefined,
         verificationOTP: hashedOtp,
-        verificationOTPExpires: Date.now() + 10 * 60 * 1000
+        verificationOTPExpires: Date.now() + 10 * 60 * 1000,
     });
+
+    // Attaching confirmPassword virtual field
     newUser.confirmPassword = confirmPassword;
 
-    // sending the OTP to user email
-    await sendVerificationEmailOTP({ name: newUser.fullName, email, otp })
+    // Adding uploaded image if present
+    if (req.file) {
+        newUser.avatar = `uploads/${req.file.filename}`;
+    }
 
-    // saving the user
+    await sendVerificationEmailOTP({ name: newUser.fullName, email, otp });
     await newUser.save();
-    res.status(StatusCodes.CREATED).json({ msg: "Account Created Successfully, please check your email to verify your account" });
-}
+
+    res.status(StatusCodes.CREATED).json({
+        msg: "Account Created Successfully, please check your email to verify your account",
+    });
+};
+
 
 // verfiy email controller
 const verfiyEmail = async (req, res) => {

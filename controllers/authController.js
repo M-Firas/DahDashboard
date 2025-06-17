@@ -55,8 +55,10 @@ const register = async (req, res) => {
 
     // Adding uploaded image if present
     if (req.file) {
-        newUser.avatar = `uploads/${req.file.filename}`;
+        const baseUrl = `${req.protocol}://${req.get('host')}`; // auto-detects production URL
+        newUser.avatar = `${baseUrl}/uploads/${req.file.filename}`;
     }
+
 
     await sendVerificationEmailOTP({ name: newUser.fullName, email, otp });
     await newUser.save();

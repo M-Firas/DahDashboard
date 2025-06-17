@@ -10,26 +10,31 @@ const CustomError = require("../errors");
 const register = async (req, res) => {
     let { email, fullName, username, password, confirmPassword } = req.body;
 
+    // trimming all values
     email = email?.trim();
     fullName = fullName?.trim();
-    username = username?.replace(/\s+/g, '');
+    username = username?.replace(/\s+/g, ''); // ensuring no spaces before,after or between
     password = password?.trim();
     confirmPassword = confirmPassword?.trim();
 
+    // checking if the user provided all required values
     if (!email || !fullName || !username || !password || !confirmPassword) {
-        throw new CustomError.BadRequestError("please provide all values!");
+        throw new CustomError.BadRequestError("Please provide all values!");
     }
 
+    // checking if the user signed up before
     const emailExists = await User.findOne({ email });
     if (emailExists) {
-        throw new CustomError.BadRequestError("email is taken!");
+        throw new CustomError.BadRequestError("Email is taken!");
     }
 
+    // checking if the username is taken
     const usernameExists = await User.findOne({ username });
     if (usernameExists) {
-        throw new CustomError.BadRequestError("username is taken!");
+        throw new CustomError.BadRequestError("Username is taken!");
     }
 
+    // validating password strenght
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,})/;
     if (!passwordRegex.test(password)) {
         throw new CustomError.BadRequestError(
@@ -37,10 +42,11 @@ const register = async (req, res) => {
         );
     }
 
+    // creating otp and hashing it 
     const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // Constructing the new user
+    // constructing the new user
     const newUser = new User({
         username,
         fullName,
@@ -50,10 +56,10 @@ const register = async (req, res) => {
         verificationOTPExpires: Date.now() + 10 * 60 * 1000,
     });
 
-    // Attaching confirmPassword virtual field
+    // attaching confirmPassword virtual field
     newUser.confirmPassword = confirmPassword;
 
-    // Adding uploaded image if present
+    // adding uploaded image if provided
     if (req.file) {
         const baseUrl = `${req.protocol}://${req.get('host')}`; // auto-detects production URL
         newUser.avatar = `${baseUrl}/uploads/${req.file.filename}`;
@@ -75,14 +81,13 @@ const verfiyEmail = async (req, res) => {
 
     // checking if the user has provided email
     if (!email || !otp) {
-        throw new CustomError.BadRequestError("please enter all the fields!")
+        throw new CustomError.BadRequestError("Please provide email and OTP!")
     }
-
 
     // checking if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-        throw new CustomError.NotFoundError("no user found with the provided email!")
+        throw new CustomError.NotFoundError("No user found with the provided email!")
     }
 
     // checking if the OTP is still valid
@@ -105,7 +110,7 @@ const verfiyEmail = async (req, res) => {
     // saving the user
     await user.save()
 
-    res.status(StatusCodes.OK).json({ msg: "Email has been verified successfully!" })
+    res.status(StatusCodes.OK).json({ msg: "Your account has been verified successfully!" })
 }
 
 
@@ -115,19 +120,19 @@ const login = async (req, res) => {
 
     // checking if user provided all values
     if (!email || !password) {
-        throw new CustomError.BadRequestError("please provide email and password!")
+        throw new CustomError.BadRequestError("Please provide email and password!")
     }
 
     // cheking if the user exists
     const user = await User.findOne({ email })
     if (!user) {
-        throw new CustomError.UnauthenticatedError("invalid email or password!")
+        throw new CustomError.UnauthenticatedError("Invalid email or password!")
     }
 
     //checking if the password is correct 
     const isPasswordCorrect = await user.comparePassword(password)
     if (!isPasswordCorrect) {
-        throw new CustomError.UnauthenticatedError("invalid email or password!")
+        throw new CustomError.UnauthenticatedError("Invalid email or password!")
     }
 
     // checking if the user is verified
@@ -141,7 +146,7 @@ const login = async (req, res) => {
         user.save()
 
         await sendVerificationEmailOTP({ name: user.fullName, email, otp })
-        throw new CustomError.UnauthenticatedError('your account is not verified yet, a verification code has been sent to your email')
+        throw new CustomError.UnauthenticatedError('Your account is not verified yet, a verification code has been sent to your email')
     }
 
     // attaching token cookie and signing the user in
@@ -158,13 +163,13 @@ const forgetPasswordOTP = async (req, res) => {
 
     // checking if the user provided email value
     if (!email) {
-        throw new CustomError.BadRequestError("please provide email!")
+        throw new CustomError.BadRequestError("Please provide email!")
     }
 
     // checking if a user with the provided email exists
     const user = await User.findOne({ email })
     if (!user) {
-        throw new CustomError.NotFoundError("no user found with the provided email!")
+        throw new CustomError.NotFoundError("No user found with the provided email!")
     }
 
     // creating and hashing OTP
@@ -181,7 +186,7 @@ const forgetPasswordOTP = async (req, res) => {
     // sending the OTP to user email
     await sendResetPasswordOTP({ name: user.fullName, email, otp })
 
-    res.status(StatusCodes.OK).json({ msg: "please check your email to reset your password" });
+    res.status(StatusCodes.OK).json({ msg: "Please check your email to reset your password" });
 
 }
 
@@ -197,7 +202,7 @@ const verifyResetPasswordOTP = async (req, res) => {
     // cheking if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-        throw new CustomError.NotFoundError("no user found with the provided email!");
+        throw new CustomError.NotFoundError("No user found with the provided email!");
     }
 
     // Checking if OTP is expired
@@ -254,7 +259,7 @@ const resetPassword = async (req, res) => {
     user.isOtpVerified = false;
     await user.save();
 
-    res.status(StatusCodes.OK).json({ msg: "Password reset successfully" });
+    res.status(StatusCodes.OK).json({ msg: "Password has been updated successfully" });
 };
 
 // user logout controller
